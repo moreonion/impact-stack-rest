@@ -1,0 +1,4 @@
+include:
+  - project: 'devops/ci-templates'
+    file: '/templates/python-postgres-app.yml'
+    ref: 1.3.1

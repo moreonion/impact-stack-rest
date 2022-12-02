@@ -1,0 +1,10 @@
+*.swp
+.venv
+__pycache__
+.DS_Store
+.cache
+.coverage
+.eggs
+coverage.xml
+.pytest_cache/
+pytest-junit.xml
