@@ -24,9 +24,9 @@ def fixture_app():
 class AuthAppClientTest:
     """Test the auth-app client."""
 
-    def test_get_token(self, requests_mock):
+    def test_get_token(self, app, requests_mock):
         """Test getting a token."""
-        client = auth.AuthAppClient.from_app()
+        client = auth.AuthAppClient.from_config(app.config.get)
         requests_mock.post(rm.ANY, json={"token": "TOKEN.org1"})
         token = client.get_token()
         assert token == "TOKEN.org1"
@@ -38,11 +38,6 @@ class AuthAppClientTest:
 @pytest.mark.usefixtures("app")
 class AuthAppMiddlewareTest:
     """Test the auth-app middleware."""
-
-    def test_default_client_from_app_config(self):
-        """Test that instantiating without a client uses client configured from the app config."""
-        middleware = auth.AuthAppMiddleware()
-        assert isinstance(middleware.client, auth.AuthAppClient)
 
     def test_call_adds_header(self):
         """Test that the JWT token is added to the header."""

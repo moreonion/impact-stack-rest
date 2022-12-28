@@ -1,6 +1,5 @@
 """Auth middlewares for the requests library."""
 
-import flask
 import requests
 
 from impact_stack.requests import rest
@@ -12,12 +11,11 @@ class AuthAppClient(rest.Client):
     AUTH_API_VERSION = "v1"
 
     @classmethod
-    def from_app(cls, app=None):
-        """Create a new instance by reading the config from the Flask app config."""
-        app = app or flask.current_app
+    def from_config(cls, config_getter):
+        """Create a new instance by reading config variables from config."""
         return cls(
-            app.config["IMPACT_STACK_API_URL"] + "/auth/" + cls.AUTH_API_VERSION,
-            app.config["IMPACT_STACK_API_KEY"],
+            config_getter("IMPACT_STACK_API_URL") + "/auth/" + cls.AUTH_API_VERSION,
+            config_getter("IMPACT_STACK_API_KEY"),
         )
 
     def __init__(self, base_url, api_key):
@@ -41,9 +39,9 @@ class AuthAppMiddleware:
     # For now the middleware is very simple, but in the future it should also take care of caching
     # the JWT and renew if needed.
 
-    def __init__(self, client=None):
+    def __init__(self, client):
         """Create new auth-app requests auth middleware."""
-        self.client = client or AuthAppClient.from_app()
+        self.client = client
 
     def __call__(self, request: requests.PreparedRequest):
         """Add the JWT token to the request."""
