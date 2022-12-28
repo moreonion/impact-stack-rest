@@ -3,9 +3,7 @@
 import functools
 import urllib.parse
 
-import requests.exceptions
-
-from . import sessions
+import requests
 
 
 class Client:
@@ -13,8 +11,8 @@ class Client:
 
     def __init__(self, base_url: str, auth=None, request_timeout=2):
         """Create a new API client instance."""
-        self._session = sessions.Session()
-        self._session.timeout = request_timeout
+        self.request_timeout = request_timeout
+        self._session = requests.Session()
         if auth:
             self._session.auth = auth
         if not base_url.endswith("/"):
@@ -38,11 +36,10 @@ class Client:
             path = "/".join(urllib.parse.quote_plus(part) for part in path_parts)
         if url:
             if not url.startswith(self._base_url):
-                raise requests.exceptions.URLRequired(
-                    f"This client only sends requests to {self._base_url}"
-                )
+                raise requests.URLRequired(f"This client only sends requests to {self._base_url}")
         else:
             url = self._base_url + path
+        kwargs.setdefault("timeout", self.request_timeout)
         response = self._session.request(method, url, **kwargs)
         response.raise_for_status()
         return response.json() if json_response else response
