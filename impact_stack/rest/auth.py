@@ -4,11 +4,21 @@ import requests
 
 from impact_stack.rest import rest
 
+try:
+    import flask
+except ImportError:  # pragma: no cover
+    pass
+
 
 class AuthAppClient(rest.Client):
     """A REST client for retrieving JWTs from the auth-app."""
 
     AUTH_API_VERSION = "v1"
+
+    @classmethod
+    def from_app(cls, app=None):
+        """Create a client instance using the current flask app’s config."""
+        return cls.from_config((app or flask.current_app).config.get)
 
     @classmethod
     def from_config(cls, config_getter):
@@ -38,6 +48,11 @@ class AuthAppMiddleware:
     # pylint: disable=too-few-public-methods
     # For now the middleware is very simple, but in the future it should also take care of caching
     # the JWT and renew if needed.
+
+    @classmethod
+    def from_app(cls, app=None):
+        """Create a middleware instance using the current flask app’s config."""
+        return cls(AuthAppClient.from_app(app))
 
     def __init__(self, client):
         """Create new auth-app requests auth middleware."""
