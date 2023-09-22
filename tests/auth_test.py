@@ -5,7 +5,7 @@ import flask
 import pytest
 import requests_mock as rm
 
-from impact_stack.rest import ClientFactory, auth
+from impact_stack.rest import AuthMiddleware, ClientFactory
 
 
 @pytest.fixture(name="app", scope="class")
@@ -43,4 +43,4 @@ def test_client_with_middleware(app, requests_mock):
 def test_factory_instantiation_from_app():
     """Test getting a client factory from a flask app."""
     factory = ClientFactory.from_app()
-    assert isinstance(factory.auth_middleware, auth.AuthAppMiddleware)
+    assert isinstance(factory.auth_middleware, AuthMiddleware)
