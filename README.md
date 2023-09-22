@@ -1,4 +1,4 @@
-### Impact Stack Requests
+### Impact Stack REST
 
 This library implements utilities for making inter services requests between Impact Stack
 microservices.

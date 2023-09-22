@@ -3,10 +3,11 @@
 from unittest import mock
 
 import pytest
+
 import requests
 import requests.exceptions
 
-from impact_stack.requests import rest
+from impact_stack.rest import rest
 
 
 class ClientTest:

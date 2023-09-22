@@ -2,7 +2,7 @@
 
 import requests
 
-from impact_stack.requests import rest
+from impact_stack.rest import rest
 
 
 class AuthAppClient(rest.Client):

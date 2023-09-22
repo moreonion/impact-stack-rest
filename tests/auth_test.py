@@ -7,7 +7,7 @@ import flask
 import pytest
 import requests_mock as rm
 
-from impact_stack.requests import auth
+from impact_stack.rest import auth
 
 
 @pytest.fixture(name="app", scope="class")

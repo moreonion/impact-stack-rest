@@ -1,5 +1,5 @@
 [project]
-name = "impact-stack-requests"
+name = "impact-stack-rest"
 version = "0.0.0"
 dependencies = [
   "requests",
@@ -38,6 +38,7 @@ fail_under = 98
 profile = "black"
 line_length = 100
 combine_as_imports = true
+known_local_folder = ["impact_stack.rest"]
 
 [tool.pydocstyle]
 convention = "google"
