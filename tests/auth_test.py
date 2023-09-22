@@ -1,13 +1,11 @@
 """Unit-tests for the auth middleware implementations."""
 # pylint: disable=too-few-public-methods
 
-from unittest import mock
-
 import flask
 import pytest
 import requests_mock as rm
 
-from impact_stack.rest import auth
+from impact_stack.rest import ClientFactory, auth
 
 
 @pytest.fixture(name="app", scope="class")
@@ -20,38 +18,29 @@ def fixture_app():
         yield app
 
 
+def test_auth_client(app, requests_mock):
+    """Test getting a token from the client app."""
+    client = ClientFactory.from_config(app.config.get).get_client("auth", needs_auth=False)
+    requests_mock.post(rm.ANY, json={"token": "TOKEN.org1"})
+    token = client.post("token", json="api-key").json()["token"]
+    assert token == "TOKEN.org1"
+    assert len(requests_mock.request_history) == 1
+    assert requests_mock.request_history[0].url == "https://impact-stack.net/api/auth/v1/token"
+    assert requests_mock.request_history[0].json() == "api-key"
+
+
+def test_client_with_middleware(app, requests_mock):
+    """Test sending authorized requests."""
+    client = ClientFactory.from_config(app.config.get).get_client("test", "v42")
+    requests_mock.post("https://impact-stack.net/api/auth/v1/token", json={"token": "TOKEN.org1"})
+    requests_mock.get("https://impact-stack.net/api/test/v42/answer", json={"answer": 42})
+    assert client.get("answer", json_response=True) == {"answer": 42}
+    assert len(requests_mock.request_history) == 2
+    assert requests_mock.request_history[1].headers["Authorization"] == "Bearer TOKEN.org1"
+
+
 @pytest.mark.usefixtures("app")
-class AuthAppClientTest:
-    """Test the auth-app client."""
-
-    def test_get_token(self, app, requests_mock):
-        """Test getting a token."""
-        client = auth.AuthAppClient.from_config(app.config.get)
-        requests_mock.post(rm.ANY, json={"token": "TOKEN.org1"})
-        token = client.get_token()
-        assert token == "TOKEN.org1"
-        assert len(requests_mock.request_history) == 1
-        assert requests_mock.request_history[0].url == "https://impact-stack.net/api/auth/v1/token"
-        assert requests_mock.request_history[0].json() == "api-key"
-
-
-@pytest.mark.usefixtures("app")
-class AuthAppMiddlewareTest:
-    """Test the auth-app middleware."""
-
-    def test_default_client_from_app_config(self):
-        """Test that instantiating without a client uses client configured from the app config."""
-        middleware = auth.AuthAppMiddleware.from_app()
-        assert isinstance(middleware.client, auth.AuthAppClient)
-
-    def test_call_adds_header(self):
-        """Test that the JWT token is added to the header."""
-        client = mock.Mock(spec=auth.AuthAppClient)
-        client.get_token.return_value = "TOKEN.org1"
-        middleware = auth.AuthAppMiddleware(client)
-
-        request = mock.Mock(headers={})
-        middleware(request)
-        assert client.method_calls == [mock.call.get_token()]
-        assert "Authorization" in request.headers
-        assert request.headers["Authorization"] == "Bearer TOKEN.org1"
+def test_factory_instantiation_from_app():
+    """Test getting a client factory from a flask app."""
+    factory = ClientFactory.from_app()
+    assert isinstance(factory.auth_middleware, auth.AuthAppMiddleware)
