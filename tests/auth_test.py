@@ -72,3 +72,12 @@ def test_factory_instantiation_from_app():
     """Test getting a client factory from a flask app."""
     factory = ClientFactory.from_app()
     assert isinstance(factory.auth_middleware, AuthMiddleware)
+
+
+def test_renewal_without_api_key(app, requests_mock):
+    """Test that session renewal works without an API-key."""
+    del app.config["IMPACT_STACK_API_KEY"]
+    factory = ClientFactory.from_app()
+    client = factory.get_client("auth", needs_auth=False)
+    requests_mock.post("https://impact-stack.net/api/auth/v1/renew", json={"status": "ok"})
+    assert client.post("renew", json_response=True) == {"status": "ok"}
