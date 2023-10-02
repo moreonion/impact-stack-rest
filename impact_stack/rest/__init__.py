@@ -1,4 +1,5 @@
 """Useful wrappers for the requests library."""
+import collections
 import datetime
 import posixpath
 import urllib.parse
@@ -64,6 +65,7 @@ class ClientFactory:
     DEFAULT_API_VERSIONS = {
         "auth": "v1",
     }
+    DEFAULT_CLASS = rest.Client
 
     @classmethod
     def from_app(cls, app=None):
@@ -78,6 +80,7 @@ class ClientFactory:
     def __init__(self, base_url, api_key):
         """Create a new client factory instance."""
         self.base_url = base_url
+        self.client_classes = collections.defaultdict(lambda: self.DEFAULT_CLASS)
         auth_client = self.get_client("auth", needs_auth=False)
         self.auth_middleware = AuthMiddleware(
             auth_client,
@@ -91,4 +94,5 @@ class ClientFactory:
         path = posixpath.join("api", app_slug, api_version)
         base_url = urllib.parse.urljoin(self.base_url, path)
         auth_ = self.auth_middleware if needs_auth else None
-        return rest.Client(base_url, auth=auth_)
+        cls = self.client_classes[app_slug]
+        return cls(base_url, auth=auth_)
