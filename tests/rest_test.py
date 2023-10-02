@@ -3,7 +3,6 @@
 from unittest import mock
 
 import pytest
-
 import requests
 import requests.exceptions
 
