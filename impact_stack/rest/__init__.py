@@ -66,6 +66,7 @@ class ClientFactory:
         "auth": "v1",
     }
     DEFAULT_CLASS = rest.Client
+    DEFAULT_TIMEOUT = 2
 
     @classmethod
     def from_app(cls, app=None):
@@ -81,6 +82,7 @@ class ClientFactory:
         """Create a new client factory instance."""
         self.base_url = base_url
         self.client_classes = collections.defaultdict(lambda: self.DEFAULT_CLASS)
+        self.timeouts = collections.defaultdict(lambda: self.DEFAULT_TIMEOUT)
         auth_client = self.get_client("auth", needs_auth=False)
         self.auth_middleware = AuthMiddleware(
             auth_client,
@@ -92,7 +94,8 @@ class ClientFactory:
         """Get a new API client for an Impact Stack service."""
         api_version = api_version or self.DEFAULT_API_VERSIONS[app_slug]
         path = posixpath.join("api", app_slug, api_version)
-        base_url = urllib.parse.urljoin(self.base_url, path)
-        auth_ = self.auth_middleware if needs_auth else None
-        cls = self.client_classes[app_slug]
-        return cls(base_url, auth=auth_)
+        return self.client_classes[app_slug](
+            urllib.parse.urljoin(self.base_url, path),
+            auth=self.auth_middleware if needs_auth else None,
+            request_timeout=self.timeouts[app_slug],
+        )
