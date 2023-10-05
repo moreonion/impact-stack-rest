@@ -1,9 +1,15 @@
 [project]
 name = "impact-stack-rest"
 version = "0.0.0"
+description = "REST API client classes for inter-services communication in Impact Stack."
 dependencies = [
   "requests",
 ]
+authors = [
+  {name = "Roman Zimmermann", email = "roman@more-onion.com"},
+]
+readme = "README.md"
+
 
 [project.optional-dependencies]
 dev = [
