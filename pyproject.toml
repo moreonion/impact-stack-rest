@@ -19,10 +19,13 @@ dev = [
   "safety",
 ]
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["impact_stack"]
-namespaces = true
+[build-system]
+requires = [
+  "setuptools>=45",
+  "setuptools-scm[toml]>=6.2",
+  "wheel",
+]
+build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 100
