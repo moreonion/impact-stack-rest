@@ -6,7 +6,7 @@ import pytest
 import requests
 import requests.exceptions
 
-from impact_stack.rest import rest
+from impact_stack import rest
 
 
 class ClientTest:

@@ -107,3 +107,7 @@ class ClientFactory:
             auth=self.auth_middleware if needs_auth else None,
             request_timeout=config["timeout"],
         )
+
+
+Client = rest.Client
+__all__ = ["AuthMiddleware", "ClientFactory", "Client"]
