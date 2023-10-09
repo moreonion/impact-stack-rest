@@ -62,12 +62,6 @@ def timeout_sum(timeout):
 class ClientFactory:
     """Factory for Impact Stack API clients."""
 
-    DEFAULT_API_VERSIONS = {
-        "auth": "v1",
-    }
-    DEFAULT_CLASS = rest.Client
-    DEFAULT_TIMEOUT = 2
-
     @classmethod
     def from_app(cls, app=None):
         """Create a new instance using the current flask app’s config."""
@@ -76,13 +70,26 @@ class ClientFactory:
     @classmethod
     def from_config(cls, config_getter):
         """Create a new factory from a config object."""
-        return cls(config_getter("IMPACT_STACK_API_URL"), config_getter("IMPACT_STACK_API_KEY"))
+        app_defaults = {
+            **{"class": rest.Client, "timeout": 2},
+            **config_getter("IMPACT_STACK_API_CLIENT_DEFAULTS", {}),
+        }
+        app_overrides = config_getter("IMPACT_STACK_API_CLIENT_CONFIG", {})
+        app_overrides.setdefault("auth", {"api_version": "v1"})
+        app_configs = collections.defaultdict(lambda: app_defaults)
+        app_configs.update(
+            {app: {**app_defaults, **overrides} for app, overrides in app_overrides.items()}
+        )
+        return cls(
+            config_getter("IMPACT_STACK_API_URL"),
+            config_getter("IMPACT_STACK_API_KEY"),
+            app_configs,
+        )
 
-    def __init__(self, base_url, api_key):
+    def __init__(self, base_url, api_key, app_configs):
         """Create a new client factory instance."""
         self.base_url = base_url
-        self.client_classes = collections.defaultdict(lambda: self.DEFAULT_CLASS)
-        self.timeouts = collections.defaultdict(lambda: self.DEFAULT_TIMEOUT)
+        self.app_configs = app_configs
         auth_client = self.get_client("auth", needs_auth=False)
         self.auth_middleware = AuthMiddleware(
             auth_client,
@@ -92,10 +99,11 @@ class ClientFactory:
 
     def get_client(self, app_slug, api_version=None, needs_auth=True):
         """Get a new API client for an Impact Stack service."""
-        api_version = api_version or self.DEFAULT_API_VERSIONS[app_slug]
+        config = self.app_configs[app_slug]
+        api_version = api_version or config["api_version"]
         path = posixpath.join("api", app_slug, api_version)
-        return self.client_classes[app_slug](
+        return config["class"](
             urllib.parse.urljoin(self.base_url, path),
             auth=self.auth_middleware if needs_auth else None,
-            request_timeout=self.timeouts[app_slug],
+            request_timeout=config["timeout"],
         )
