@@ -52,15 +52,15 @@ class AuthMiddleware:
         return request
 
 
-def timeout_sum(timeout):
-    """Sum up all the values in a requests timeout."""
-    # A timeout is a tuple of connect and read timeout. Passing an integer is a short hand for
-    # using the same number for both.
-    return timeout * 2 if isinstance(timeout, int) else sum(timeout)
-
-
 class ClientFactory:
     """Factory for Impact Stack API clients."""
+
+    @staticmethod
+    def timeout_sum(timeout):
+        """Sum up all the values in a requests timeout."""
+        # A timeout is a tuple of connect and read timeout. Passing an integer is a short hand for
+        # using the same number for both.
+        return timeout * 2 if isinstance(timeout, int) else sum(timeout)
 
     @classmethod
     def from_app(cls, app=None):
@@ -94,7 +94,7 @@ class ClientFactory:
         self.auth_middleware = AuthMiddleware(
             auth_client,
             api_key,
-            timeout_sum(auth_client.request_timeout),
+            self.timeout_sum(auth_client.request_timeout),
         )
 
     def get_client(self, app_slug, api_version=None, needs_auth=True):
