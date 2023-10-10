@@ -1,37 +1,53 @@
 [project]
-name = "python-boilerplate"
+name = "impact-stack-rest"
 version = "0.0.0"
+description = "REST API client classes for inter-services communication in Impact Stack."
 dependencies = [
-  "pip-tools",
+  "requests",
 ]
+authors = [
+  {name = "Roman Zimmermann", email = "roman@more-onion.com"},
+]
+readme = "README.md"
+
 
 [project.optional-dependencies]
 dev = [
   "black",
+  "flask",
   "isort",
-  "pip-tools >= 6.1.0",
   "pre-commit",
   "pydocstyle[toml] >= 6",
   "pylint",
   "pytest",
   "pytest-cov",
-  "safety",
+  "requests-mock",
+  "twine",
 ]
+
+[build-system]
+requires = [
+  "setuptools>=45",
+  "setuptools-scm[toml]>=6.2",
+  "wheel",
+]
+build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 100
 
 [tool.coverage.run]
-source = ["boilerplate_project"]
+source = ["impact_stack"]
 relative_files = true
 
 [tool.coverage.report]
-fail_under = 90
+fail_under = 98
 
 [tool.isort]
 profile = "black"
 line_length = 100
 combine_as_imports = true
+known_local_folder = ["impact_stack.rest"]
 
 [tool.pydocstyle]
 convention = "google"

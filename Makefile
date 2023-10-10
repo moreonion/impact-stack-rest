@@ -1,7 +1,8 @@
-.PHONY: help bootstrap lint test safety requirements
+.PHONY: help bootstrap lint test requirements
 
 VENV?=.venv
 PYTHON?=python3
+PYTHONNOUSERSITE?=1
 
 help:
 	@echo
@@ -10,11 +11,12 @@ help:
 	@echo "make development     -- setup development environment"
 	@echo "make test            -- run full test suite"
 	@echo "make lint            -- run all linters on the code base"
-	@echo "make safety          -- run safety check on packages"
 	@echo
 	@echo "make requirements    -- only compile the requirements*.txt files"
 	@echo "make .venv           -- bootstrap the virtualenv."
 	@echo
+
+PIP_SYNC=$(VENV)/bin/pip-sync
 
 install: $(VENV)/.pip-installed-production
 
@@ -26,15 +28,9 @@ lint: development
 test: development
 	$(VENV)/bin/pytest
 
-safety: requirements.txt development
-	$(VENV)/bin/safety check -r $<
+requirements: requirements-dev.txt
 
-requirements: requirements.txt requirements-dev.txt
-
-requirements.txt: pyproject.toml
-	$(VENV)/bin/pip-compile -v --output-file=$@ $<
-
-requirements-dev.txt: pyproject.toml
+requirements-dev.txt: pyproject.toml $(PIP_SYNC)
 	$(VENV)/bin/pip-compile -v --output-file=$@ --extra=dev $<
 
 # Actual files/directories
@@ -43,14 +39,16 @@ requirements-dev.txt: pyproject.toml
 # Create this directory as a symbolic link to an existing virtualenv, if you want to use that.
 $(VENV):
 	$(PYTHON) -m venv --system-site-packages $(VENV)
-	$(VENV)/bin/pip install pip-tools wheel
 	touch $(VENV)
 
-$(VENV)/.pip-installed-production: $(VENV) requirements.txt
-	$(VENV)/bin/pip-sync requirements.txt && touch $@
+$(PIP_SYNC): $(VENV)
+	PYTHONNOUSERSITE=$(PYTHONNOUSERSITE) $(VENV)/bin/pip install --upgrade pip pip-tools wheel && touch $@
 
-$(VENV)/.pip-installed-development: $(VENV) requirements-dev.txt
-	$(VENV)/bin/pip-sync requirements-dev.txt && touch $@
+$(VENV)/.pip-installed-production: requirements.txt $(PIP_SYNC)
+	PYTHONNOUSERSITE=$(PYTHONNOUSERSITE) $(PIP_SYNC) $< && touch $@
+
+$(VENV)/.pip-installed-development: requirements-dev.txt $(PIP_SYNC)
+	PYTHONNOUSERSITE=$(PYTHONNOUSERSITE) $(PIP_SYNC) $< && touch $@
 
 .git/hooks/pre-commit: $(VENV)
 	$(VENV)/bin/pre-commit install
