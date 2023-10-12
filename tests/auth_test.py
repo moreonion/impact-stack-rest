@@ -12,7 +12,7 @@ from impact_stack.rest import AuthMiddleware, ClientFactory
 
 def test_auth_client(app, requests_mock):
     """Test getting a token from the client app."""
-    client = ClientFactory.from_config(app.config.get).get_client("auth", needs_auth=False)
+    client = ClientFactory.from_config(app.config.get).get_client("auth")
     token_response = {
         "token": "TOKEN.org1",
         "data": {"exp": datetime.datetime.now().timestamp() + 3600},
@@ -27,7 +27,7 @@ def test_auth_client(app, requests_mock):
 
 def test_client_with_middleware(app, requests_mock):
     """Test sending authorized requests."""
-    client = ClientFactory.from_config(app.config.get).get_client("test", "v42")
+    client = ClientFactory.from_config(app.config.get).app_to_app("test", "v42")
     initial_time = datetime.datetime(2023, 9, 26, 13, 7)
     token_response = {
         "token": "TOKEN.org1",
@@ -67,6 +67,6 @@ def test_renewal_without_api_key(app, requests_mock):
     """Test that session renewal works without an API-key."""
     del app.config["IMPACT_STACK_API_KEY"]
     factory = ClientFactory.from_app()
-    client = factory.get_client("auth", needs_auth=False)
+    client = factory.get_client("auth")
     requests_mock.post("https://impact-stack.net/api/auth/v1/renew", json={"status": "ok"})
     assert client.post("renew", json_response=True) == {"status": "ok"}

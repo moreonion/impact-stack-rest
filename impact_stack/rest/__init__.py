@@ -6,7 +6,7 @@ import urllib.parse
 
 import requests
 
-from impact_stack.rest import rest, utils
+from impact_stack.rest import exceptions, rest, utils
 
 try:
     import flask
@@ -90,24 +90,47 @@ class ClientFactory:
         """Create a new client factory instance."""
         self.base_url = base_url
         self.app_configs = app_configs
-        auth_client = self.get_client("auth", needs_auth=False)
+        auth_client = self.get_client("auth")
         self.auth_middleware = AuthMiddleware(
             auth_client,
             api_key,
             self.timeout_sum(auth_client.request_timeout),
         )
 
-    def get_client(self, app_slug, api_version=None, needs_auth=True):
-        """Get a new API client for an Impact Stack service."""
+    def get_client(self, app_slug, api_version=None, auth=None):
+        """Create a new API client."""
         config = self.app_configs[app_slug]
         api_version = api_version or config["api_version"]
         path = posixpath.join("api", app_slug, api_version)
         return config["class"](
             urllib.parse.urljoin(self.base_url, path),
-            auth=self.auth_middleware if needs_auth else None,
+            auth=auth,
             request_timeout=config["timeout"],
         )
 
+    def app_to_app(self, app_slug, api_version=None):
+        """Get a new API client for Impact Stack app to app requests."""
+        return self.get_client(app_slug, api_version, self.auth_middleware)
+
+    def forwarding(self, incoming_request, app_slug, api_version=None):
+        """Get a new API client for forwarding requests to another Impact Stack app."""
+        try:
+            auth_header = incoming_request.headers["Authorization"]
+        except KeyError as exc:
+            raise exceptions.RequestUnauthorized("No request header in incoming request.") from exc
+
+        def auth(request: requests.PreparedRequest):
+            """Copy the authorization header into outgoing requests."""
+            request.headers["Authorization"] = auth_header
+            return request
+
+        return self.get_client(app_slug, api_version, auth)
+
 
 Client = rest.Client
-__all__ = ["AuthMiddleware", "ClientFactory", "Client"]
+__all__ = [
+    "AuthMiddleware",
+    "ClientFactory",
+    "Client",
+    "exceptions",
+]
