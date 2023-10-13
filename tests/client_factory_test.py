@@ -17,6 +17,17 @@ def test_override_class():
     assert isinstance(factory.get_client("test", "v1"), test_client_cls)
 
 
+@pytest.mark.usefixtures("app")
+def test_class_from_path():
+    """Test instantiating a client class by passing the class path as string."""
+    factory = rest.ClientFactory.from_app()
+    factory.app_configs["test"] = {
+        **factory.app_configs["test"],
+        **{"class": "impact_stack.rest.Client"},
+    }
+    assert isinstance(factory.get_client("test", "v1"), rest.Client)
+
+
 def test_override_timeout(app):
     """Test that clients can get specific default timeouts."""
     factory = rest.ClientFactory.from_app()

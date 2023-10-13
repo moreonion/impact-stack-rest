@@ -102,7 +102,9 @@ class ClientFactory:
         config = self.app_configs[app_slug]
         api_version = api_version or config["api_version"]
         path = posixpath.join("api", app_slug, api_version)
-        return config["class"](
+        if isinstance(client_class := config["class"], str):
+            client_class = utils.class_from_path(client_class)
+        return client_class(
             urllib.parse.urljoin(self.base_url, path),
             auth=auth,
             request_timeout=config["timeout"],
