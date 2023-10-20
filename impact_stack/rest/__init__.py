@@ -43,7 +43,7 @@ class AuthMiddleware:
         if self.needs_refresh():
             data = self.client.post("token", json=self.api_key, json_response=True)
             self.token = data["token"]
-            self.expires_at = data["data"]["exp"]
+            self.expires_at = data["exp"]
         return self.token
 
     def __call__(self, request: requests.PreparedRequest):

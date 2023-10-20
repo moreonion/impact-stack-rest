@@ -15,7 +15,7 @@ def test_auth_client(app, requests_mock):
     client = ClientFactory.from_config(app.config.get).get_client("auth")
     token_response = {
         "token": "TOKEN.org1",
-        "data": {"exp": datetime.datetime.now().timestamp() + 3600},
+        "exp": datetime.datetime.now().timestamp() + 3600,
     }
     requests_mock.post(rm.ANY, json=token_response)
     token = client.post("token", json="api-key").json()["token"]
@@ -31,7 +31,7 @@ def test_client_with_middleware(app, requests_mock):
     initial_time = datetime.datetime(2023, 9, 26, 13, 7)
     token_response = {
         "token": "TOKEN.org1",
-        "data": {"exp": initial_time.timestamp() + 3600},
+        "exp": initial_time.timestamp() + 3600,
     }
     requests_mock.post("https://impact-stack.net/api/auth/v1/token", json=token_response)
     requests_mock.get("https://impact-stack.net/api/test/v42/answer", json={"answer": 42})
