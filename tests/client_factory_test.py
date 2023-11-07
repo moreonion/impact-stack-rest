@@ -7,6 +7,27 @@ import pytest
 from impact_stack import rest
 
 
+def test_configs_used(app):
+    """Test configs and default values used when creating client factories."""
+    app.config = mock.Mock()
+    app.config.get.side_effect = lambda k, default=None: default
+    rest.ClientFactoryBase.from_app()
+    assert app.config.mock_calls == [
+        mock.call.get("IMPACT_STACK_API_URL"),
+        mock.call.get("IMPACT_STACK_API_CLIENT_DEFAULTS", {}),
+        mock.call.get("IMPACT_STACK_API_CLIENT_CONFIG", {"auth": {"api_version": "v1"}}),
+    ]
+    app.config.reset_mock()
+
+    rest.ClientFactory.from_app()
+    assert app.config.mock_calls == [
+        mock.call.get("IMPACT_STACK_API_URL"),
+        mock.call.get("IMPACT_STACK_API_CLIENT_DEFAULTS", {}),
+        mock.call.get("IMPACT_STACK_API_CLIENT_CONFIG", {"auth": {"api_version": "v1"}}),
+        mock.call.get("IMPACT_STACK_API_KEY"),
+    ]
+
+
 @pytest.mark.usefixtures("app")
 def test_override_class():
     """Test that the client class can be overridden on a per-app basis."""
