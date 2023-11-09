@@ -52,24 +52,17 @@ class AuthMiddleware:
         return request
 
 
-class ClientFactory:
-    """Factory for Impact Stack API clients."""
-
-    @staticmethod
-    def timeout_sum(timeout):
-        """Sum up all the values in a requests timeout."""
-        # A timeout is a tuple of connect and read timeout. Passing an integer is a short hand for
-        # using the same number for both.
-        return timeout * 2 if isinstance(timeout, int) else sum(timeout)
+class ClientFactoryBase:
+    """Factory for Impact Stack API clients which don’t need app-to-app authentication."""
 
     @classmethod
     def from_app(cls, app=None):
         """Create a new instance using the current flask app’s config."""
         return cls.from_config((app or flask.current_app).config.get)
 
-    @classmethod
-    def from_config(cls, config_getter):
-        """Create a new factory from a config object."""
+    @staticmethod
+    def create_app_configs(config_getter):
+        """Generate the app config from config variables."""
         app_defaults = {
             **{"class": rest.Client, "timeout": 2},
             **config_getter("IMPACT_STACK_API_CLIENT_DEFAULTS", {}),
@@ -80,22 +73,20 @@ class ClientFactory:
         app_configs.update(
             {app: {**app_defaults, **overrides} for app, overrides in app_overrides.items()}
         )
+        return app_configs
+
+    @classmethod
+    def from_config(cls, config_getter):
+        """Create a new factory from a config object."""
         return cls(
             config_getter("IMPACT_STACK_API_URL"),
-            config_getter("IMPACT_STACK_API_KEY"),
-            app_configs,
+            cls.create_app_configs(config_getter),
         )
 
-    def __init__(self, base_url, api_key, app_configs):
+    def __init__(self, base_url, app_configs):
         """Create a new client factory instance."""
         self.base_url = base_url
         self.app_configs = app_configs
-        auth_client = self.get_client("auth")
-        self.auth_middleware = AuthMiddleware(
-            auth_client,
-            api_key,
-            self.timeout_sum(auth_client.request_timeout),
-        )
 
     def get_client(self, app_slug, api_version=None, auth=None):
         """Create a new API client."""
@@ -109,10 +100,6 @@ class ClientFactory:
             auth=auth,
             request_timeout=config["timeout"],
         )
-
-    def app_to_app(self, app_slug, api_version=None):
-        """Get a new API client for Impact Stack app to app requests."""
-        return self.get_client(app_slug, api_version, self.auth_middleware)
 
     def forwarding(self, incoming_request, app_slug, api_version=None):
         """Get a new API client for forwarding requests to another Impact Stack app."""
@@ -129,10 +116,45 @@ class ClientFactory:
         return self.get_client(app_slug, api_version, auth)
 
 
+class ClientFactory(ClientFactoryBase):
+    """Factory for Impact Stack API clients."""
+
+    @staticmethod
+    def timeout_sum(timeout):
+        """Sum up all the values in a requests timeout."""
+        # A timeout is a tuple of connect and read timeout. Passing an integer is a short hand for
+        # using the same number for both.
+        return timeout * 2 if isinstance(timeout, int) else sum(timeout)
+
+    @classmethod
+    def from_config(cls, config_getter):
+        """Create a new factory from a config object."""
+        return cls(
+            config_getter("IMPACT_STACK_API_URL"),
+            cls.create_app_configs(config_getter),
+            config_getter("IMPACT_STACK_API_KEY"),
+        )
+
+    def __init__(self, base_url, app_configs, api_key):
+        """Create a new client factory instance."""
+        super().__init__(base_url, app_configs)
+        auth_client = self.get_client("auth")
+        self.auth_middleware = AuthMiddleware(
+            auth_client,
+            api_key,
+            self.timeout_sum(auth_client.request_timeout),
+        )
+
+    def app_to_app(self, app_slug, api_version=None):
+        """Get a new API client for Impact Stack app to app requests."""
+        return self.get_client(app_slug, api_version, self.auth_middleware)
+
+
 Client = rest.Client
 __all__ = [
     "AuthMiddleware",
     "ClientFactory",
+    "ClientFactoryBase",
     "Client",
     "exceptions",
 ]
