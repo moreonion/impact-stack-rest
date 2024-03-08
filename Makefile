@@ -3,6 +3,7 @@
 VENV?=.venv
 PYTHON?=python3
 PYTHONNOUSERSITE?=1
+TOUCH?=touch -d "+1 seconds"
 
 help:
 	@echo
@@ -14,7 +15,6 @@ help:
 	@echo
 	@echo "make requirements    -- only compile the requirements*.txt files"
 	@echo "make .venv           -- bootstrap the virtualenv."
-	@echo
 
 PIP_SYNC=$(VENV)/bin/pip-sync
 
@@ -23,7 +23,8 @@ install: $(VENV)/.pip-installed-production
 development: $(VENV)/.pip-installed-development .git/hooks/pre-commit
 
 lint: development
-	$(VENV)/bin/pre-commit run -a
+	# pre-commit doesn’t run its tasks in the python venv by default. Set the PATH manually.
+	PATH="$(abspath $(VENV))/bin:$(PATH)" $(VENV)/bin/pre-commit run -a
 
 test: development
 	$(VENV)/bin/pytest
@@ -39,17 +40,17 @@ requirements-dev.txt: pyproject.toml $(PIP_SYNC)
 # Create this directory as a symbolic link to an existing virtualenv, if you want to use that.
 $(VENV):
 	$(PYTHON) -m venv --system-site-packages $(VENV)
-	touch $(VENV)
+	$(TOUCH) $(VENV)
 
 $(PIP_SYNC): $(VENV)
-	PYTHONNOUSERSITE=$(PYTHONNOUSERSITE) $(VENV)/bin/pip install --upgrade pip pip-tools wheel && touch $@
+	PYTHONNOUSERSITE=$(PYTHONNOUSERSITE) $(VENV)/bin/pip install --upgrade pip pip-tools wheel && $(TOUCH) $@
 
 $(VENV)/.pip-installed-production: requirements.txt $(PIP_SYNC)
-	PYTHONNOUSERSITE=$(PYTHONNOUSERSITE) $(PIP_SYNC) $< && touch $@
+	PYTHONNOUSERSITE=$(PYTHONNOUSERSITE) $(PIP_SYNC) $< && $(TOUCH) $@
 
 $(VENV)/.pip-installed-development: requirements-dev.txt $(PIP_SYNC)
-	PYTHONNOUSERSITE=$(PYTHONNOUSERSITE) $(PIP_SYNC) $< && touch $@
+	PYTHONNOUSERSITE=$(PYTHONNOUSERSITE) $(PIP_SYNC) $< && $(TOUCH) $@
 
 .git/hooks/pre-commit: $(VENV)
 	$(VENV)/bin/pre-commit install
-	touch .git/hooks/pre-commit
+	$(TOUCH) .git/hooks/pre-commit
