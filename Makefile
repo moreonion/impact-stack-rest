@@ -7,8 +7,6 @@ TOUCH?=touch -d "+1 seconds"
 
 help:
 	@echo
-	@echo "make install         -- setup production environment"
-	@echo
 	@echo "make development     -- setup development environment"
 	@echo "make test            -- run full test suite"
 	@echo "make lint            -- run all linters on the code base"
