@@ -1,4 +1,5 @@
 """Unit-tests for the auth middleware implementations."""
+
 # pylint: disable=too-few-public-methods
 
 import datetime
