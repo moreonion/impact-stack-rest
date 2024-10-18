@@ -4,49 +4,48 @@
 #
 #    pip-compile --extra=dev --output-file=requirements-dev.txt pyproject.toml
 #
-astroid==3.2.4
+astroid==3.3.5
     # via pylint
 backports-tarfile==1.2.0
     # via jaraco-context
-black==24.8.0
+black==24.10.0
     # via impact-stack-rest (pyproject.toml)
 blinker==1.8.2
     # via flask
 certifi==2024.8.30
     # via requests
-cffi==1.17.0
+cffi==1.17.1
     # via cryptography
 cfgv==3.4.0
     # via pre-commit
-charset-normalizer==3.3.2
+charset-normalizer==3.4.0
     # via requests
 click==8.1.7
     # via
     #   black
     #   flask
-coverage[toml]==7.6.1
+coverage[toml]==7.6.3
     # via pytest-cov
-cryptography==43.0.0
+cryptography==43.0.1
     # via secretstorage
-dill==0.3.8
+dill==0.3.9
     # via pylint
-distlib==0.3.8
+distlib==0.3.9
     # via virtualenv
 docutils==0.21.2
     # via readme-renderer
 exceptiongroup==1.2.2
     # via pytest
-filelock==3.15.4
+filelock==3.16.1
     # via virtualenv
 flask==3.0.3
     # via impact-stack-rest (pyproject.toml)
-identify==2.6.0
+identify==2.6.1
     # via pre-commit
-idna==3.8
+idna==3.10
     # via requests
-importlib-metadata==8.4.0
+importlib-metadata==8.5.0
     # via
-    #   flask
     #   keyring
     #   twine
 iniconfig==2.0.0
@@ -61,7 +60,7 @@ jaraco-classes==3.4.0
     # via keyring
 jaraco-context==6.0.1
     # via keyring
-jaraco-functools==4.0.2
+jaraco-functools==4.1.0
     # via keyring
 jeepney==0.8.0
     # via
@@ -69,11 +68,11 @@ jeepney==0.8.0
     #   secretstorage
 jinja2==3.1.4
     # via flask
-keyring==25.3.0
+keyring==25.4.1
     # via twine
 markdown-it-py==3.0.0
     # via rich
-markupsafe==2.1.5
+markupsafe==3.0.1
     # via
     #   jinja2
     #   werkzeug
@@ -81,7 +80,7 @@ mccabe==0.7.0
     # via pylint
 mdurl==0.1.2
     # via markdown-it-py
-more-itertools==10.4.0
+more-itertools==10.5.0
     # via
     #   jaraco-classes
     #   jaraco-functools
@@ -99,14 +98,14 @@ pathspec==0.12.1
     # via black
 pkginfo==1.10.0
     # via twine
-platformdirs==4.2.2
+platformdirs==4.3.6
     # via
     #   black
     #   pylint
     #   virtualenv
 pluggy==1.5.0
     # via pytest
-pre-commit==3.8.0
+pre-commit==4.0.1
     # via impact-stack-rest (pyproject.toml)
 pycparser==2.22
     # via cffi
@@ -116,9 +115,9 @@ pygments==2.18.0
     # via
     #   readme-renderer
     #   rich
-pylint==3.2.7
+pylint==3.3.1
     # via impact-stack-rest (pyproject.toml)
-pytest==8.3.2
+pytest==8.3.3
     # via
     #   impact-stack-rest (pyproject.toml)
     #   pytest-cov
@@ -140,13 +139,13 @@ requests-toolbelt==1.0.0
     # via twine
 rfc3986==2.0.0
     # via twine
-rich==13.8.0
+rich==13.9.2
     # via twine
 secretstorage==3.3.3
     # via keyring
 snowballstemmer==2.2.0
     # via pydocstyle
-tomli==2.0.1
+tomli==2.0.2
     # via
     #   black
     #   coverage
@@ -162,13 +161,13 @@ typing-extensions==4.12.2
     #   astroid
     #   black
     #   pylint
-urllib3==2.2.2
+urllib3==2.2.3
     # via
     #   requests
     #   twine
-virtualenv==20.26.3
+virtualenv==20.27.0
     # via pre-commit
 werkzeug==3.0.4
     # via flask
-zipp==3.20.1
+zipp==3.20.2
     # via importlib-metadata
