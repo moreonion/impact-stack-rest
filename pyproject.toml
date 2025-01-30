@@ -17,7 +17,6 @@ dev = [
   "flask",
   "isort",
   "pre-commit",
-  "pydocstyle[toml] >= 6",
   "pylint",
   "pytest",
   "pytest-cov",

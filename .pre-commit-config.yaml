@@ -25,8 +25,3 @@ repos:
         language: system
         types:
         - python
-    -   id: pydocstyle
-        name: pydocstyle
-        entry: pydocstyle
-        language: python
-        files: \.py$

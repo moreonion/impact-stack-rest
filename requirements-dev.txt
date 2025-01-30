@@ -109,8 +109,6 @@ pre-commit==4.0.1
     # via impact-stack-rest (pyproject.toml)
 pycparser==2.22
     # via cffi
-pydocstyle[toml]==6.3.0
-    # via impact-stack-rest (pyproject.toml)
 pygments==2.18.0
     # via
     #   readme-renderer
@@ -143,8 +141,6 @@ rich==13.9.2
     # via twine
 secretstorage==3.3.3
     # via keyring
-snowballstemmer==2.2.0
-    # via pydocstyle
 tomli==2.0.2
     # via
     #   black
