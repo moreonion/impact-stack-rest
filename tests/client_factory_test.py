@@ -38,7 +38,7 @@ def test_override_class():
 
     test_client_cls = type("TestClient", (rest.rest.Client,), {})
     factory.app_configs["test"] = {**factory.app_configs["test"], **{"class": test_client_cls}}
-    assert isinstance(factory.get_client("org", "test", "v1"), test_client_cls)
+    assert isinstance(factory.client_for_owner("org", "test", "v1"), test_client_cls)
 
 
 @pytest.mark.usefixtures("app")
@@ -49,7 +49,7 @@ def test_class_from_path():
         **factory.app_configs["test"],
         **{"class": "impact_stack.rest.Client"},
     }
-    assert isinstance(factory.get_client("org", "test", "v1"), rest.Client)
+    assert isinstance(factory.client_for_owner("org", "test", "v1"), rest.Client)
 
 
 @pytest.mark.usefixtures("app")
@@ -58,13 +58,13 @@ def test_override_timeout():
     factory = rest.ClientFactory.from_app()
     test_client_cls = mock.Mock()
     factory.app_configs["test"] = {**factory.app_configs["test"], **{"class": test_client_cls}}
-    factory.get_client("org", "test", "v1")
+    factory.client_for_owner("org", "test", "v1")
     assert test_client_cls.mock_calls == [
         mock.call("https://org.impact-stack.net/api/test/v1", auth=None, request_timeout=2),
     ]
     test_client_cls.reset_mock()
     factory.app_configs["test"]["timeout"] = 42
-    factory.get_client("org", "test", "v1")
+    factory.client_for_owner("org", "test", "v1")
     assert test_client_cls.mock_calls == [
         mock.call("https://org.impact-stack.net/api/test/v1", auth=None, request_timeout=42),
     ]

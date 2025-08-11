@@ -88,13 +88,13 @@ class ClientFactoryBase:
         self.base_url_pattern = base_url_pattern
         self.app_configs = app_configs
 
-    def get_client(self, data_owner: str, *args, **kwargs) -> rest.Client:
+    def client_for_owner(self, data_owner: str, *args, **kwargs) -> rest.Client:
         """Create a new API client."""
-        return self._get_client(
+        return self.client_for_url(
             self.base_url_pattern.format(data_owner=data_owner), *args, **kwargs
         )
 
-    def _get_client(self, base_url, app_slug, api_version=None, auth=None) -> rest.Client:
+    def client_for_url(self, base_url, app_slug, api_version=None, auth=None) -> rest.Client:
         """Get the an app client for a specific base URL."""
         config = self.app_configs[app_slug]
         api_version = api_version or config["api_version"]
@@ -122,7 +122,7 @@ class ClientFactoryBase:
             request.headers["Authorization"] = auth_header
             return request
 
-        return self._get_client(base_url, app_slug, api_version, auth)
+        return self.client_for_url(base_url, app_slug, api_version, auth)
 
 
 class ClientFactory(ClientFactoryBase):
@@ -153,12 +153,12 @@ class ClientFactory(ClientFactoryBase):
     def app_to_app(self, data_owner, app_slug, api_version=None) -> rest.Client:
         """Get a new API client for Impact Stack app to app requests."""
         if not data_owner in self.auth_clients:
-            self.auth_clients[data_owner] = self.get_client(data_owner, "auth")
+            self.auth_clients[data_owner] = self.client_for_owner(data_owner, "auth")
         auth_client: rest.Client = self.auth_clients[data_owner]
         auth_middleware = AuthMiddleware(
             auth_client, self.api_key, self.timeout_sum(auth_client.request_timeout)
         )
-        return self.get_client(data_owner, app_slug, api_version, auth_middleware)
+        return self.client_for_owner(data_owner, app_slug, api_version, auth_middleware)
 
 
 Client = rest.Client
