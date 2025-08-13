@@ -2,6 +2,7 @@
 
 import collections
 import posixpath
+import typing
 import urllib.parse
 
 import requests
@@ -10,8 +11,16 @@ from impact_stack.rest import exceptions, rest, utils
 
 try:
     import flask
-except ImportError:  # pragma: no cover
+except ImportError:
     pass
+
+if typing.TYPE_CHECKING:  # pragma: no cover
+    import django.http
+    import flask
+
+    IncomingRequest = flask.Request | django.http.HttpRequest
+else:
+    IncomingRequest = typing.TypeVar("IncomingRequest")
 
 
 class AuthMiddleware:
@@ -107,7 +116,7 @@ class ClientFactoryBase:
             request_timeout=config["timeout"],
         )
 
-    def forwarding(self, incoming_request: flask.Request, app_slug, api_version=None):
+    def forwarding(self, incoming_request: IncomingRequest, app_slug, api_version=None):
         """Get a new API client for forwarding requests to another Impact Stack app."""
         try:
             auth_header = incoming_request.headers["Authorization"]
