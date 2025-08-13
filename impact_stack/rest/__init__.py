@@ -23,6 +23,26 @@ else:
     IncomingRequest = typing.TypeVar("IncomingRequest")
 
 
+def base_url_from_request(request: IncomingRequest):
+    """Extract the base URL from a request."""
+    url = request.base_url
+    return url[: url.find("/api") + 1]
+
+
+def auth_from_request(request: IncomingRequest):
+    """Extract the auth header from a request."""
+    try:
+        auth_header = request.headers["Authorization"]
+    except KeyError as exc:
+        raise exceptions.RequestUnauthorized("No request header in incoming request.") from exc
+
+    def auth(request: requests.PreparedRequest):
+        """Copy the authorization header into outgoing requests."""
+        request.headers["Authorization"] = auth_header
+        return request
+
+    return auth
+
 class AuthMiddleware:
     """Requests middleware for authenticating using JWT tokens.
 
@@ -97,11 +117,13 @@ class ClientFactoryBase:
         self.base_url_pattern = base_url_pattern
         self.app_configs = app_configs
 
+    def url_for_owner(self, data_owner: str) -> str:
+        """Get the base URL for the specified data owner."""
+        return self.base_url_pattern.format(data_owner=data_owner)
+
     def client_for_owner(self, data_owner: str, *args, **kwargs) -> rest.Client:
         """Create a new API client."""
-        return self.client_for_url(
-            self.base_url_pattern.format(data_owner=data_owner), *args, **kwargs
-        )
+        return self.client_for_url(self.url_for_owner(data_owner), *args, **kwargs)
 
     def client_for_url(self, base_url, app_slug, api_version=None, auth=None) -> rest.Client:
         """Get the an app client for a specific base URL."""
@@ -116,21 +138,10 @@ class ClientFactoryBase:
             request_timeout=config["timeout"],
         )
 
-    def forwarding(self, incoming_request: IncomingRequest, app_slug, api_version=None):
+    def forwarding(self, request: IncomingRequest, app_slug, api_version=None):
         """Get a new API client for forwarding requests to another Impact Stack app."""
-        try:
-            auth_header = incoming_request.headers["Authorization"]
-        except KeyError as exc:
-            raise exceptions.RequestUnauthorized("No request header in incoming request.") from exc
-
-        url = incoming_request.base_url
-        base_url = url[: url.find("/api") + 1]
-
-        def auth(request: requests.PreparedRequest):
-            """Copy the authorization header into outgoing requests."""
-            request.headers["Authorization"] = auth_header
-            return request
-
+        auth = auth_from_request(request)
+        base_url = base_url_from_request(request)
         return self.client_for_url(base_url, app_slug, api_version, auth)
 
 
@@ -156,18 +167,23 @@ class ClientFactory(ClientFactoryBase):
     def __init__(self, base_url_pattern, app_configs, api_key):
         """Create a new client factory instance."""
         super().__init__(base_url_pattern, app_configs)
-        self.auth_clients = {}
+        self.auth_clients: dict[str, rest.Client] = {}
         self.api_key = api_key
+
+    def get_middleware(self, base_url):
+        """Get the auth middleware for the specified base URL."""
+        if not base_url in self.auth_clients:
+            self.auth_clients[base_url] = self.client_for_url(base_url, "auth")
+        auth_client = self.auth_clients[base_url]
+        return AuthMiddleware(
+            auth_client, self.api_key, self.timeout_sum(auth_client.request_timeout)
+        )
 
     def app_to_app(self, data_owner, app_slug, api_version=None) -> rest.Client:
         """Get a new API client for Impact Stack app to app requests."""
-        if not data_owner in self.auth_clients:
-            self.auth_clients[data_owner] = self.client_for_owner(data_owner, "auth")
-        auth_client: rest.Client = self.auth_clients[data_owner]
-        auth_middleware = AuthMiddleware(
-            auth_client, self.api_key, self.timeout_sum(auth_client.request_timeout)
-        )
-        return self.client_for_owner(data_owner, app_slug, api_version, auth_middleware)
+        base_url = self.url_for_owner(data_owner)
+        auth = self.get_middleware(base_url)
+        return self.client_for_url(base_url, app_slug, api_version, auth=auth)
 
 
 Client = rest.Client
