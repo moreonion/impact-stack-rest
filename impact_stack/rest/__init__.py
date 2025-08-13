@@ -25,8 +25,13 @@ else:
 
 def base_url_from_request(request: IncomingRequest):
     """Extract the base URL from a request."""
-    url = request.base_url
-    return url[: url.find("/api") + 1]
+    if hasattr(request, "base_url"):
+        url = request.base_url
+    elif hasattr(request, "build_absolute_uri"):
+        url = request.build_absolute_uri("/")
+    else:
+        raise TypeError(f"Unsupported request type: {type(request)}")
+    return url[: url.find("/api") + 1] if "/api" in url else url
 
 
 def auth_from_request(request: IncomingRequest):
@@ -42,6 +47,7 @@ def auth_from_request(request: IncomingRequest):
         return request
 
     return auth
+
 
 class AuthMiddleware:
     """Requests middleware for authenticating using JWT tokens.

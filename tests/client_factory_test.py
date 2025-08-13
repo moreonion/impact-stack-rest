@@ -2,9 +2,26 @@
 
 from unittest import mock
 
+import django.http
+import flask
 import pytest
 
 from impact_stack import rest
+
+
+def test_base_url_from_request_flask():
+    """Test that the base URL is extracted from flask requests."""
+    request = mock.Mock(spec=flask.Request)
+    request.base_url = "https://org.impact-stack.net/api/test/v1"
+    assert rest.base_url_from_request(request) == "https://org.impact-stack.net/"
+
+
+def test_base_url_from_request_django():
+    """Test that the base URL is extracted from Django requests."""
+    request = mock.Mock(spec=django.http.HttpRequest)
+    request.build_absolute_uri.return_value = "https://org.impact-stack.net/"
+    assert rest.base_url_from_request(request) == "https://org.impact-stack.net/"
+    assert request.build_absolute_uri.mock_calls == [mock.call("/")]
 
 
 def test_configs_used(app):
