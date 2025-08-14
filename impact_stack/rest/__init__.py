@@ -173,17 +173,17 @@ class ClientFactory(ClientFactoryBase):
     def __init__(self, base_url_pattern, app_configs, api_key):
         """Create a new client factory instance."""
         super().__init__(base_url_pattern, app_configs)
-        self.auth_clients: dict[str, rest.Client] = {}
+        self.auth_middlewares: dict[str, AuthMiddleware] = {}
         self.api_key = api_key
 
     def get_middleware(self, base_url):
         """Get the auth middleware for the specified base URL."""
-        if not base_url in self.auth_clients:
-            self.auth_clients[base_url] = self.client(base_url, "auth")
-        auth_client = self.auth_clients[base_url]
-        return AuthMiddleware(
-            auth_client, self.api_key, self.timeout_sum(auth_client.request_timeout)
-        )
+        if not base_url in self.auth_middlewares:
+            client = self.client(base_url, "auth")
+            self.auth_middlewares[base_url] = AuthMiddleware(
+                client, self.api_key, self.timeout_sum(client.request_timeout)
+            )
+        return self.auth_middlewares[base_url]
 
     def app_to_app(self, data_owner, app_slug, api_version=None) -> rest.Client:
         """Get a new API client for Impact Stack app to app requests."""
