@@ -1,5 +1,6 @@
 """Tests for the client factory."""
 
+import datetime
 from unittest import mock
 
 import django.http
@@ -93,15 +94,36 @@ def test_forwarding_client(requests_mock):
     requests_mock.get("https://org.impact-stack.net/api/test/v1/", json={"status": "ok"})
     factory = rest.ClientFactory.from_app()
 
-    incoming_request = mock.Mock()
+    incoming_request = mock.Mock(spec=flask.Request)
     incoming_request.base_url = "https://org.impact-stack.net/api/foo/v2"
     incoming_request.headers = {"Authorization": "Bearer JWT-token"}
-    client = factory.forwarding(incoming_request, "test", "v1")
+    client = factory.client_forwarding(incoming_request, "test", "v1")
     assert client.get(json_response=True) == {"status": "ok"}
     assert "Authorization" in requests_mock.request_history[0].headers
     assert requests_mock.request_history[0].headers["Authorization"] == "Bearer JWT-token"
 
-    incoming_request = mock.Mock()
+    incoming_request = mock.Mock(spec=flask.Request)
+    incoming_request.base_url = "https://org.impact-stack.net/api/foo/v2"
     incoming_request.headers = {}
     with pytest.raises(rest.exceptions.RequestUnauthorized):
-        factory.forwarding(incoming_request, "test", "v1")
+        factory.client_forwarding(incoming_request, "test", "v1")
+
+
+@pytest.mark.usefixtures("app")
+def test_forwarding_app_client(requests_mock):
+    """Test that a forwarding app client uses the app token."""
+    requests_mock.get("https://org.impact-stack.net/api/test/v1/", json={"status": "ok"})
+    requests_mock.post(
+        "https://org.impact-stack.net/api/auth/v1/token",
+        json={"token": "app-token", "exp": datetime.datetime.now().timestamp() + 30},
+    )
+    factory = rest.ClientFactory.from_app()
+
+    incoming_request = mock.Mock(spec=flask.Request)
+    incoming_request.base_url = "https://org.impact-stack.net/api/foo/v2"
+    incoming_request.headers = {"Authorization": "Bearer incoming-token"}
+    client = factory.client_forwarding_as_app(incoming_request, "test", "v1")
+    assert client.get(json_response=True) == {"status": "ok"}
+    assert len(requests_mock.request_history) == 2
+    assert "Authorization" in requests_mock.request_history[1].headers
+    assert requests_mock.request_history[1].headers["Authorization"] == "Bearer app-token"

@@ -28,7 +28,7 @@ def test_auth_client(app, requests_mock):
 
 def test_client_with_middleware(app, requests_mock):
     """Test sending authorized requests."""
-    client = ClientFactory.from_config(app.config.get).app_to_app("org", "test", "v42")
+    client = ClientFactory.from_config(app.config.get).client_app_to_app("org", "test", "v42")
     initial_time = datetime.datetime(2023, 9, 26, 13, 7)
     token_response = {
         "token": "TOKEN.org1",
@@ -61,7 +61,7 @@ def test_client_with_middleware(app, requests_mock):
 def test_factory_instantiation_from_app():
     """Test getting a client factory from a flask app."""
     factory = ClientFactory.from_app()
-    client = factory.app_to_app("org", "formtool", "v1")
+    client = factory.client_app_to_app("org", "formtool", "v1")
     # pylint: disable=protected-access
     assert isinstance(client._session.auth, AuthMiddleware)
 

@@ -144,11 +144,10 @@ class ClientFactoryBase:
             request_timeout=config["timeout"],
         )
 
-    def forwarding(self, request: IncomingRequest, app_slug, api_version=None):
+    def client_forwarding(self, request: IncomingRequest, *args, **kwargs) -> rest.Client:
         """Get a new API client for forwarding requests to another Impact Stack app."""
-        auth = auth_from_request(request)
-        base_url = base_url_from_request(request)
-        return self.client(base_url, app_slug, api_version, auth)
+        kwargs["auth"] = auth_from_request(request)
+        return self.client(base_url_from_request(request), *args, **kwargs)
 
 
 class ClientFactory(ClientFactoryBase):
@@ -185,7 +184,13 @@ class ClientFactory(ClientFactoryBase):
             )
         return self.auth_middlewares[base_url]
 
-    def app_to_app(self, data_owner, app_slug, api_version=None) -> rest.Client:
+    def client_forwarding_as_app(self, request: IncomingRequest, *args, **kwargs) -> rest.Client:
+        """Get a new API client for forwarding requests as app user."""
+        base_url = base_url_from_request(request)
+        kwargs["auth"] = self.get_middleware(base_url)
+        return self.client(base_url, *args, **kwargs)
+
+    def client_app_to_app(self, data_owner, app_slug, api_version=None) -> rest.Client:
         """Get a new API client for Impact Stack app to app requests."""
         base_url = self.url_for_owner(data_owner)
         auth = self.get_middleware(base_url)
