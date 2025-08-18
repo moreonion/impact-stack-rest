@@ -113,23 +113,11 @@ class ClientFactoryBase:
     @classmethod
     def from_config(cls, config_getter):
         """Create a new factory from a config object."""
-        return cls(
-            config_getter("IMPACT_STACK_API_URL_PATTERN"),
-            cls.create_app_configs(config_getter),
-        )
+        return cls(cls.create_app_configs(config_getter))
 
-    def __init__(self, base_url_pattern: str, app_configs):
+    def __init__(self, app_configs):
         """Create a new client factory instance."""
-        self.base_url_pattern = base_url_pattern
         self.app_configs = app_configs
-
-    def url_for_owner(self, data_owner: str) -> str:
-        """Get the base URL for the specified data owner."""
-        return self.base_url_pattern.format(data_owner=data_owner)
-
-    def client_for_owner(self, data_owner: str, *args, **kwargs) -> rest.Client:
-        """Create a new API client."""
-        return self.client(self.url_for_owner(data_owner), *args, **kwargs)
 
     def client(self, base_url, app_slug, api_version=None, auth=None) -> rest.Client:
         """Get the an app client for a specific base URL."""
@@ -164,14 +152,13 @@ class ClientFactory(ClientFactoryBase):
     def from_config(cls, config_getter):
         """Create a new factory from a config object."""
         return cls(
-            config_getter("IMPACT_STACK_API_URL_PATTERN"),
             cls.create_app_configs(config_getter),
             config_getter("IMPACT_STACK_API_KEY"),
         )
 
-    def __init__(self, base_url_pattern, app_configs, api_key):
+    def __init__(self, app_configs, api_key):
         """Create a new client factory instance."""
-        super().__init__(base_url_pattern, app_configs)
+        super().__init__(app_configs)
         self.auth_middlewares: dict[str, AuthMiddleware] = {}
         self.api_key = api_key
 
@@ -190,16 +177,42 @@ class ClientFactory(ClientFactoryBase):
         kwargs["auth"] = self.get_middleware(base_url)
         return self.client(base_url, *args, **kwargs)
 
+
+class BackendClientFactory(ClientFactory):
+    """Factory for Impact Stack API clients."""
+
+    @classmethod
+    def from_config(cls, config_getter):
+        """Create a new factory from a config object."""
+        return cls(
+            config_getter("IMPACT_STACK_API_URL_PATTERN"),
+            cls.create_app_configs(config_getter),
+            config_getter("IMPACT_STACK_API_KEY"),
+        )
+
+    def __init__(self, base_url_pattern: str, app_configs, api_key):
+        self.base_url_pattern = base_url_pattern
+        super().__init__(app_configs, api_key)
+
     def client_app_to_app(self, data_owner, app_slug, api_version=None) -> rest.Client:
         """Get a new API client for Impact Stack app to app requests."""
         base_url = self.url_for_owner(data_owner)
         auth = self.get_middleware(base_url)
         return self.client(base_url, app_slug, api_version, auth=auth)
 
+    def url_for_owner(self, data_owner: str) -> str:
+        """Get the base URL for the specified data owner."""
+        return self.base_url_pattern.format(data_owner=data_owner)
+
+    def client_for_owner(self, data_owner: str, *args, **kwargs) -> rest.Client:
+        """Create a new API client."""
+        return self.client(self.url_for_owner(data_owner), *args, **kwargs)
+
 
 Client = rest.Client
 __all__ = [
     "AuthMiddleware",
+    "BackendClientFactory",
     "ClientFactory",
     "ClientFactoryBase",
     "Client",

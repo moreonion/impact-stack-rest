@@ -34,13 +34,20 @@ def test_configs_used(app):
     app.config.get.side_effect = lambda k, default=None: config.get(k, default)
     rest.ClientFactoryBase.from_app()
     assert app.config.mock_calls == [
-        mock.call.get("IMPACT_STACK_API_URL_PATTERN"),
         mock.call.get("IMPACT_STACK_API_CLIENT_DEFAULTS", {}),
         mock.call.get("IMPACT_STACK_API_CLIENT_CONFIG", {"auth": {"api_version": "v1"}}),
     ]
     app.config.reset_mock()
 
     rest.ClientFactory.from_app()
+    assert app.config.mock_calls == [
+        mock.call.get("IMPACT_STACK_API_CLIENT_DEFAULTS", {}),
+        mock.call.get("IMPACT_STACK_API_CLIENT_CONFIG", {"auth": {"api_version": "v1"}}),
+        mock.call.get("IMPACT_STACK_API_KEY"),
+    ]
+    app.config.reset_mock()
+
+    rest.BackendClientFactory.from_app()
     assert app.config.mock_calls == [
         mock.call.get("IMPACT_STACK_API_URL_PATTERN"),
         mock.call.get("IMPACT_STACK_API_CLIENT_DEFAULTS", {}),
@@ -52,7 +59,7 @@ def test_configs_used(app):
 @pytest.mark.usefixtures("app")
 def test_override_class():
     """Test that the client class can be overridden on a per-app basis."""
-    factory = rest.ClientFactory.from_app()
+    factory = rest.BackendClientFactory.from_app()
 
     test_client_cls = type("TestClient", (rest.rest.Client,), {})
     factory.app_configs["test"] = {**factory.app_configs["test"], **{"class": test_client_cls}}
@@ -62,7 +69,7 @@ def test_override_class():
 @pytest.mark.usefixtures("app")
 def test_class_from_path():
     """Test instantiating a client class by passing the class path as string."""
-    factory = rest.ClientFactory.from_app()
+    factory = rest.BackendClientFactory.from_app()
     factory.app_configs["test"] = {
         **factory.app_configs["test"],
         **{"class": "impact_stack.rest.Client"},
@@ -73,7 +80,7 @@ def test_class_from_path():
 @pytest.mark.usefixtures("app")
 def test_override_timeout():
     """Test that clients can get specific default timeouts."""
-    factory = rest.ClientFactory.from_app()
+    factory = rest.BackendClientFactory.from_app()
     test_client_cls = mock.Mock()
     factory.app_configs["test"] = {**factory.app_configs["test"], **{"class": test_client_cls}}
     factory.client_for_owner("org", "test", "v1")
@@ -92,7 +99,7 @@ def test_override_timeout():
 def test_forwarding_client(requests_mock):
     """Test that a forwarding client forwards the authorization header."""
     requests_mock.get("https://org.impact-stack.net/api/test/v1/", json={"status": "ok"})
-    factory = rest.ClientFactory.from_app()
+    factory = rest.ClientFactoryBase.from_app()
 
     incoming_request = mock.Mock(spec=flask.Request)
     incoming_request.base_url = "https://org.impact-stack.net/api/foo/v2"
