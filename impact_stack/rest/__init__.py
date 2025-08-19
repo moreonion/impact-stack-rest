@@ -39,7 +39,9 @@ def auth_from_request(request: IncomingRequest):
     try:
         auth_header = request.headers["Authorization"]
     except KeyError as exc:
-        raise exceptions.RequestUnauthorized("No request header in incoming request.") from exc
+        raise exceptions.RequestUnauthorized(
+            "No Authorization header in incoming request."
+        ) from exc
 
     def auth(request: requests.PreparedRequest):
         """Copy the authorization header into outgoing requests."""
