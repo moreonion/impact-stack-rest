@@ -25,8 +25,8 @@ else:
 
 def base_url_from_request(request: IncomingRequest):
     """Extract the base URL from a request."""
-    if hasattr(request, "base_url"):
-        url = request.base_url
+    if hasattr(request, "root_url"):
+        url = request.root_url
     elif hasattr(request, "build_absolute_uri"):
         url = request.build_absolute_uri("/")
     else:

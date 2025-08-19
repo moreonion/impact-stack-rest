@@ -13,7 +13,7 @@ from impact_stack import rest
 def test_base_url_from_request_flask():
     """Test that the base URL is extracted from flask requests."""
     request = mock.Mock(spec=flask.Request)
-    request.base_url = "https://org.impact-stack.net/api/test/v1"
+    request.root_url = "https://org.impact-stack.net/api/test"
     assert rest.base_url_from_request(request) == "https://org.impact-stack.net/"
 
 
@@ -102,7 +102,7 @@ def test_forwarding_client(requests_mock):
     factory = rest.ClientFactoryBase.from_app()
 
     incoming_request = mock.Mock(spec=flask.Request)
-    incoming_request.base_url = "https://org.impact-stack.net/api/foo/v2"
+    incoming_request.root_url = "https://org.impact-stack.net/api/foo"
     incoming_request.headers = {"Authorization": "Bearer JWT-token"}
     client = factory.client_forwarding(incoming_request, "test", "v1")
     assert client.get(json_response=True) == {"status": "ok"}
@@ -110,7 +110,7 @@ def test_forwarding_client(requests_mock):
     assert requests_mock.request_history[0].headers["Authorization"] == "Bearer JWT-token"
 
     incoming_request = mock.Mock(spec=flask.Request)
-    incoming_request.base_url = "https://org.impact-stack.net/api/foo/v2"
+    incoming_request.root_url = "https://org.impact-stack.net/api/foo"
     incoming_request.headers = {}
     with pytest.raises(rest.exceptions.RequestUnauthorized):
         factory.client_forwarding(incoming_request, "test", "v1")
@@ -127,7 +127,7 @@ def test_forwarding_app_client(requests_mock):
     factory = rest.ClientFactory.from_app()
 
     incoming_request = mock.Mock(spec=flask.Request)
-    incoming_request.base_url = "https://org.impact-stack.net/api/foo/v2"
+    incoming_request.root_url = "https://org.impact-stack.net/api/foo"
     incoming_request.headers = {"Authorization": "Bearer incoming-token"}
     client = factory.client_forwarding_as_app(incoming_request, "test", "v1")
     assert client.get(json_response=True) == {"status": "ok"}
