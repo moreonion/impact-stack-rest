@@ -120,7 +120,7 @@ class ClientFactoryBase:
         self.app_configs = app_configs
 
     def client(self, base_url, app_slug, api_version=None, auth=None) -> rest.Client:
-        """Get the an app client for a specific base URL."""
+        """Get the an API client for a specific base URL."""
         config = self.app_configs[app_slug]
         api_version = api_version or config["api_version"]
         path = posixpath.join("api", app_slug, api_version)
