@@ -180,7 +180,7 @@ class ClientFactory(ClientFactoryBase):
         return self.client(base_url, *args, **kwargs)
 
 
-class BackendClientFactory(ClientFactory):
+class OwnerClientFactory(ClientFactory):
     """Factory for Impact Stack API clients."""
 
     @classmethod
@@ -214,9 +214,9 @@ class BackendClientFactory(ClientFactory):
 Client = rest.Client
 __all__ = [
     "AuthMiddleware",
-    "BackendClientFactory",
     "ClientFactory",
     "ClientFactoryBase",
     "Client",
+    "OwnerClientFactory",
     "exceptions",
 ]

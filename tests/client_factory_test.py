@@ -47,7 +47,7 @@ def test_configs_used(app):
     ]
     app.config.reset_mock()
 
-    rest.BackendClientFactory.from_app()
+    rest.OwnerClientFactory.from_app()
     assert app.config.mock_calls == [
         mock.call.get("IMPACT_STACK_API_URL_PATTERN"),
         mock.call.get("IMPACT_STACK_API_CLIENT_DEFAULTS", {}),
@@ -59,7 +59,7 @@ def test_configs_used(app):
 @pytest.mark.usefixtures("app")
 def test_override_class():
     """Test that the client class can be overridden on a per-app basis."""
-    factory = rest.BackendClientFactory.from_app()
+    factory = rest.OwnerClientFactory.from_app()
 
     test_client_cls = type("TestClient", (rest.rest.Client,), {})
     factory.app_configs["test"] = {**factory.app_configs["test"], **{"class": test_client_cls}}
@@ -69,7 +69,7 @@ def test_override_class():
 @pytest.mark.usefixtures("app")
 def test_class_from_path():
     """Test instantiating a client class by passing the class path as string."""
-    factory = rest.BackendClientFactory.from_app()
+    factory = rest.OwnerClientFactory.from_app()
     factory.app_configs["test"] = {
         **factory.app_configs["test"],
         **{"class": "impact_stack.rest.Client"},
@@ -80,7 +80,7 @@ def test_class_from_path():
 @pytest.mark.usefixtures("app")
 def test_override_timeout():
     """Test that clients can get specific default timeouts."""
-    factory = rest.BackendClientFactory.from_app()
+    factory = rest.OwnerClientFactory.from_app()
     test_client_cls = mock.Mock()
     factory.app_configs["test"] = {**factory.app_configs["test"], **{"class": test_client_cls}}
     factory.client_for_owner("org", "test", "v1")
