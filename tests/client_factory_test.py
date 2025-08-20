@@ -25,6 +25,13 @@ def test_base_url_from_request_django():
     assert request.build_absolute_uri.mock_calls == [mock.call("/")]
 
 
+def test_base_url_from_request_unsupported():
+    """Test that an exception is raised for unsupported requests."""
+    request = mock.Mock(spec=object)
+    with pytest.raises(TypeError):
+        rest.base_url_from_request(request)
+
+
 def test_configs_used(app):
     """Test configs and default values used when creating client factories."""
     app.config = mock.Mock()

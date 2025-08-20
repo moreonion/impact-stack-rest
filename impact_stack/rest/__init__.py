@@ -11,7 +11,7 @@ from impact_stack.rest import exceptions, rest, utils
 
 try:
     import flask
-except ImportError:
+except ImportError:  # pragma: no cover
     pass
 
 if typing.TYPE_CHECKING:  # pragma: no cover
