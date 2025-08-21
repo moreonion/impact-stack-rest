@@ -1,8 +1,8 @@
 """Useful wrappers for the requests library."""
 
 import collections
-import datetime
 import posixpath
+import typing
 import urllib.parse
 
 import requests
@@ -13,6 +13,42 @@ try:
     import flask
 except ImportError:  # pragma: no cover
     pass
+
+if typing.TYPE_CHECKING:  # pragma: no cover
+    import django.http
+    import flask
+
+    IncomingRequest = flask.Request | django.http.HttpRequest
+else:
+    IncomingRequest = typing.TypeVar("IncomingRequest")
+
+
+def base_url_from_request(request: IncomingRequest):
+    """Extract the base URL from a request."""
+    if hasattr(request, "root_url"):
+        url = request.root_url
+    elif hasattr(request, "build_absolute_uri"):
+        url = request.build_absolute_uri("/")
+    else:
+        raise TypeError(f"Unsupported request type: {type(request)}")
+    return url[: url.find("/api") + 1] if "/api" in url else url
+
+
+def auth_from_request(request: IncomingRequest):
+    """Extract the auth header from a request."""
+    try:
+        auth_header = request.headers["Authorization"]
+    except KeyError as exc:
+        raise exceptions.RequestUnauthorized(
+            "No Authorization header in incoming request."
+        ) from exc
+
+    def auth(request: requests.PreparedRequest):
+        """Copy the authorization header into outgoing requests."""
+        request.headers["Authorization"] = auth_header
+        return request
+
+    return auth
 
 
 class AuthMiddleware:
@@ -79,42 +115,29 @@ class ClientFactoryBase:
     @classmethod
     def from_config(cls, config_getter):
         """Create a new factory from a config object."""
-        return cls(
-            config_getter("IMPACT_STACK_API_URL"),
-            cls.create_app_configs(config_getter),
-        )
+        return cls(cls.create_app_configs(config_getter))
 
-    def __init__(self, base_url, app_configs):
+    def __init__(self, app_configs):
         """Create a new client factory instance."""
-        self.base_url = base_url
         self.app_configs = app_configs
 
-    def get_client(self, app_slug, api_version=None, auth=None):
-        """Create a new API client."""
+    def client(self, base_url, app_slug, api_version=None, auth=None) -> rest.Client:
+        """Get the an API client for a specific base URL."""
         config = self.app_configs[app_slug]
         api_version = api_version or config["api_version"]
         path = posixpath.join("api", app_slug, api_version)
         if isinstance(client_class := config["class"], str):
             client_class = utils.class_from_path(client_class)
         return client_class(
-            urllib.parse.urljoin(self.base_url, path),
+            urllib.parse.urljoin(base_url, path),
             auth=auth,
             request_timeout=config["timeout"],
         )
 
-    def forwarding(self, incoming_request, app_slug, api_version=None):
+    def client_forwarding(self, request: IncomingRequest, *args, **kwargs) -> rest.Client:
         """Get a new API client for forwarding requests to another Impact Stack app."""
-        try:
-            auth_header = incoming_request.headers["Authorization"]
-        except KeyError as exc:
-            raise exceptions.RequestUnauthorized("No request header in incoming request.") from exc
-
-        def auth(request: requests.PreparedRequest):
-            """Copy the authorization header into outgoing requests."""
-            request.headers["Authorization"] = auth_header
-            return request
-
-        return self.get_client(app_slug, api_version, auth)
+        kwargs["auth"] = auth_from_request(request)
+        return self.client(base_url_from_request(request), *args, **kwargs)
 
 
 class ClientFactory(ClientFactoryBase):
@@ -131,24 +154,61 @@ class ClientFactory(ClientFactoryBase):
     def from_config(cls, config_getter):
         """Create a new factory from a config object."""
         return cls(
-            config_getter("IMPACT_STACK_API_URL"),
             cls.create_app_configs(config_getter),
             config_getter("IMPACT_STACK_API_KEY"),
         )
 
-    def __init__(self, base_url, app_configs, api_key):
+    def __init__(self, app_configs, api_key):
         """Create a new client factory instance."""
-        super().__init__(base_url, app_configs)
-        auth_client = self.get_client("auth")
-        self.auth_middleware = AuthMiddleware(
-            auth_client,
-            api_key,
-            self.timeout_sum(auth_client.request_timeout),
+        super().__init__(app_configs)
+        self.auth_middlewares: dict[str, AuthMiddleware] = {}
+        self.api_key = api_key
+
+    def get_middleware(self, base_url):
+        """Get the auth middleware for the specified base URL."""
+        if not base_url in self.auth_middlewares:
+            client = self.client(base_url, "auth")
+            self.auth_middlewares[base_url] = AuthMiddleware(
+                client, self.api_key, self.timeout_sum(client.request_timeout)
+            )
+        return self.auth_middlewares[base_url]
+
+    def client_forwarding_as_app(self, request: IncomingRequest, *args, **kwargs) -> rest.Client:
+        """Get a new API client for forwarding requests as app user."""
+        base_url = base_url_from_request(request)
+        kwargs["auth"] = self.get_middleware(base_url)
+        return self.client(base_url, *args, **kwargs)
+
+
+class OwnerClientFactory(ClientFactory):
+    """Factory for Impact Stack API clients."""
+
+    @classmethod
+    def from_config(cls, config_getter):
+        """Create a new factory from a config object."""
+        return cls(
+            config_getter("IMPACT_STACK_API_URL_PATTERN"),
+            cls.create_app_configs(config_getter),
+            config_getter("IMPACT_STACK_API_KEY"),
         )
 
-    def app_to_app(self, app_slug, api_version=None):
+    def __init__(self, base_url_pattern: str, app_configs, api_key):
+        self.base_url_pattern = base_url_pattern
+        super().__init__(app_configs, api_key)
+
+    def client_app_to_app(self, data_owner, app_slug, api_version=None) -> rest.Client:
         """Get a new API client for Impact Stack app to app requests."""
-        return self.get_client(app_slug, api_version, self.auth_middleware)
+        base_url = self.url_for_owner(data_owner)
+        auth = self.get_middleware(base_url)
+        return self.client(base_url, app_slug, api_version, auth=auth)
+
+    def url_for_owner(self, data_owner: str) -> str:
+        """Get the base URL for the specified data owner."""
+        return self.base_url_pattern.format(data_owner=data_owner)
+
+    def client_for_owner(self, data_owner: str, *args, **kwargs) -> rest.Client:
+        """Create a new API client."""
+        return self.client(self.url_for_owner(data_owner), *args, **kwargs)
 
 
 Client = rest.Client
@@ -157,5 +217,6 @@ __all__ = [
     "ClientFactory",
     "ClientFactoryBase",
     "Client",
+    "OwnerClientFactory",
     "exceptions",
 ]
