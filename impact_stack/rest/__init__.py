@@ -16,22 +16,20 @@ except ImportError:  # pragma: no cover
 
 if typing.TYPE_CHECKING:  # pragma: no cover
     import django.http
-    import flask
+    import werkzeug.wrappers
 
-    IncomingRequest = flask.Request | django.http.HttpRequest
+    IncomingRequest = werkzeug.wrappers.Request | django.http.HttpRequest
 else:
     IncomingRequest = typing.TypeVar("IncomingRequest")
 
 
 def base_url_from_request(request: IncomingRequest):
     """Extract the base URL from a request."""
-    if hasattr(request, "root_url"):
-        url = request.root_url
-    elif hasattr(request, "build_absolute_uri"):
-        url = request.build_absolute_uri("/")
-    else:
-        raise TypeError(f"Unsupported request type: {type(request)}")
-    return url[: url.find("/api") + 1] if "/api" in url else url
+    if hasattr(request, "host_url"):
+        return request.host_url
+    if hasattr(request, "build_absolute_uri"):
+        return request.build_absolute_uri("/")
+    raise TypeError(f"Unsupported request type: {type(request)}")
 
 
 def auth_from_request(request: IncomingRequest):
