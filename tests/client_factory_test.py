@@ -6,13 +6,14 @@ from unittest import mock
 import django.http
 import flask
 import pytest
+import werkzeug.wrappers
 
 from impact_stack import rest
 
 
 def test_base_url_from_request_flask():
     """Test that the base URL is extracted from flask requests."""
-    request = mock.Mock(spec=flask.Request)
+    request = mock.Mock(spec=werkzeug.wrappers.Request)
     request.host_url = "https://org.impact-stack.net/"
     assert rest.base_url_from_request(request) == request.host_url
 

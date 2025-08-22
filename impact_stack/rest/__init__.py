@@ -16,9 +16,9 @@ except ImportError:  # pragma: no cover
 
 if typing.TYPE_CHECKING:  # pragma: no cover
     import django.http
-    import flask
+    import werkzeug.wrappers
 
-    IncomingRequest = flask.Request | django.http.HttpRequest
+    IncomingRequest = werkzeug.wrappers.Request | django.http.HttpRequest
 else:
     IncomingRequest = typing.TypeVar("IncomingRequest")
 
