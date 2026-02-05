@@ -42,7 +42,7 @@ $(VENV):
 	touch $(VENV)
 
 $(PIP_SYNC): $(VENV)
-	PYTHONNOUSERSITE=$(PYTHONNOUSERSITE) $(VENV)/bin/pip install --upgrade pip pip-tools wheel && touch $@
+	PYTHONNOUSERSITE=$(PYTHONNOUSERSITE) $(VENV)/bin/pip install --upgrade pip pip-tools pip-and-pip-tools wheel && touch $@
 
 $(VENV)/.pip-installed-production: requirements.txt $(PIP_SYNC)
 	PYTHONNOUSERSITE=$(PYTHONNOUSERSITE) $(PIP_SYNC) $< && touch $@
