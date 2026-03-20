@@ -3,7 +3,7 @@
 import functools
 import urllib.parse
 
-import requests
+import httpx
 
 
 class Client:
@@ -12,7 +12,7 @@ class Client:
     def __init__(self, base_url: str, auth=None, request_timeout=2):
         """Create a new API client instance."""
         self.request_timeout = request_timeout
-        self._session = requests.Session()
+        self._session = httpx.Client()
         if auth:
             self._session.auth = auth
         if not base_url.endswith("/"):
@@ -36,7 +36,7 @@ class Client:
             path = "/".join(urllib.parse.quote_plus(part) for part in path_parts)
         if url:
             if not url.startswith(self._base_url):
-                raise requests.URLRequired(f"This client only sends requests to {self._base_url}")
+                raise ValueError(f"This client only sends requests to {self._base_url}")
         else:
             url = self._base_url + path
         kwargs.setdefault("timeout", self.request_timeout)

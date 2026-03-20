@@ -5,7 +5,7 @@ import posixpath
 import typing
 import urllib.parse
 
-import requests
+import httpx
 
 from impact_stack.rest import exceptions, rest, utils
 
@@ -41,7 +41,7 @@ def auth_from_request(request: IncomingRequest):
             "No Authorization header in incoming request."
         ) from exc
 
-    def auth(request: requests.PreparedRequest):
+    def auth(request: httpx.Request):
         """Copy the authorization header into outgoing requests."""
         request.headers["Authorization"] = auth_header
         return request
@@ -68,20 +68,18 @@ class AuthMiddleware:
 
     def needs_refresh(self):
         """Check if we have a token and it can still be used."""
-        if not self.token:
-            return True
         time_left = self.expires_at - utils.now().timestamp()
         return time_left < self.life_time_buffer
 
-    def get_token(self):
+    def get_token(self) -> str:
         """Use the API key to get a JWT."""
-        if self.needs_refresh():
+        if self.token is None or self.needs_refresh():
             data = self.client.post("token", json=self.api_key, json_response=True)
             self.token = data["token"]
             self.expires_at = data["exp"]
         return self.token
 
-    def __call__(self, request: requests.PreparedRequest):
+    def __call__(self, request: httpx.Request):
         """Add the JWT token to the request."""
         request.headers["Authorization"] = "Bearer " + self.get_token()
         return request

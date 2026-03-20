@@ -2,7 +2,7 @@
 name = "impact-stack-rest"
 description = "REST API client classes for inter-services communication in Impact Stack."
 dependencies = [
-  "requests",
+  "httpx",
 ]
 authors = [
   {name = "Roman Zimmermann", email = "roman@more-onion.com"},
